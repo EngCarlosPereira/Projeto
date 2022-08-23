@@ -1,0 +1,192 @@
+# Setando valores máximos de plotagem
+options(max.print = 999999)
+################################   Passo 1: Tratamento e apresentação de dados    #################################################
+
+# 1.1: Carregando base de dados coletada do Site da NASA com os valores da Irradiação entre os anos de 1984 e 2021
+Base_Dados = read.csv(file = "C:\\Pessoal\\Pós\\TCC\\Projeto\\Base_Irrad_1984_2022.csv")
+
+
+# 1.2: Gerando uma série temporal da base de dados original contendo o valores da variável Irradiação entre os anos de 1984 e 2021
+
+
+Stemp_Base_Dados <- ts(Base_Dados, start = c(1984,1),  end = c(2021,12),frequency =  12)
+Stemp_Base_Dados
+# 1.3 Plotando o gprafico da Série Temporal criada anteriormente
+
+
+plot.ts(Stemp_Base_Dados, lwd=0.5, col = "black",
+         main = "Série Temportal - Caucáia-CE - 1984 a 2021",
+         xlab = "Anos", ylab = "Irradiação  (kW-hr/m^2/day)")
+        axis(2, at=seq(from= 1984, to=2021, by=1))
+        
+Log_Base_Dados <- log(Stemp_Base_Dados)
+plot.ts(Log_Base_Dados)
+
+#Verificar se será utilizado o método aditivo (Sazionalidade Constante) ou multiplicativo (Sazionalidade crescente). Porém, viualmenete há uma tendência aos dados
+# serem Sazionais e constantes. Portanto o  método a ser utilizado será o Aditivo -----------------
+#LogBaseDados <- log(Stemp_Base_Dados,base=10) - Essa função não funcionou 
+
+                ################################   Passo 2: Autocorrelação    #################################################
+# 2.1 Aplicação de LAG
+
+Stemp_Base_Dados
+lag(Base_Dados, -1)
+lag(Base_Dados, -2)
+
+# 2.2 Gerando lags para  série. Criando uma nova base
+
+tsData <- ts(Stemp_Base_Dados)
+
+tsData
+
+LaggedTs <- lag(tsData,3)
+myDf <- as.data.frame(tsData)
+myDf
+myDf <- slide(myDf, "x",NewVar = "xLag1", slideBy = -1 )
+myDf <- slide(myDf, "x",NewVar = "xLead1", slideBy = 1 )
+head(myDf)
+hist(Stemp_Base_Dados)
+
+# 2.3 Autocorrelação 
+teste = acf(Stemp_Base_Dados, lag.max = 20 )
+teste
+pacf(Stemp_Base_Dados, 12)
+
+#################################################################################
+# Exemplo 2
+# Differencing: representa subtrair cada ponto de dados na série de seu sucessor
+
+nsdiffs(Stemp_Base_Dados)  # número para diferenciação sazonal necessário. Retornou o valor Zerado
+Stemp_Base_Dados_diff <- diff(Stemp_Base_Dados, lag=frequency(Stemp_Base_Dados), differences=1)  # diferenciação sazonal
+plot(Stemp_Base_Dados_diff, main = "Diferença Sazonal")
+Stemp_Base_Dados_diff
+
+
+# Usando a função HoltWinters() para isso é preciso definir os parâmetros beta e gamma.
+
+rainseriesforecasts <- HoltWinters(Stemp_Base_Dados, beta=FALSE, gamma=FALSE)
+rainseriesforecasts
+rainseriesforecasts$fitted
+
+plot(rainseriesforecasts$fitted)
+
+
+rainseriesforecasts$SSE
+HoltWinters(rainseriesforecasts$fitted, beta=FALSE, gamma=FALSE, l.start=5.86 ) # utilizando o primeiro valor previsto
+
+rainseriesforecasts2  <- forecast(rainseriesforecasts$fitted, h=24) 
+rainseriesforecasts2   
+plot(rainseriesforecasts2) 
+
+coefficients(rainseriesforecasts2$forecast$xhat$model$residuals )
+checkresiduals(rainseriesforecasts2$forecast$xhat$model$residuals)
+
+
+rainseriesforecasts2$forecast$xhat$model$residuals
+
+plot.ts(rainseriesforecasts2$forecast$xhat$model$residuals)
+
+
+
+View (rainseriesforecasts2)
+
+acf(rainseriesforecasts2$forecast$xhat$residuals, lag.max = 20, na.action = na.pass)
+
+
+Box.test(rainseriesforecasts2$forecast$xhat$residuals, lag=20, type="Ljung-Box")
+
+# Para avaliar vamos gerar um histograma
+
+plotForecastErrors <- function(forecastErrors)
+{
+  forecastErrorsSd <- sd(x = forecastErrors,
+                         na.rm = TRUE)
+  forecastErrorsMin <- min(forecastErrors,
+                           na.rm = TRUE) - forecastErrorsSd * 5
+  forecastErrorsMax <- max(forecastErrors,
+                           na.rm = TRUE) + forecastErrorsSd * 3
+  forecastErrorsNorm <- rnorm(n = 10000,
+                              mean = 0,
+                              sd = forecastErrorsSd)
+  binMin <- min(forecastErrorsMin, forecastErrorsNorm)
+  binMax <- max(forecastErrorsMax, forecastErrorsNorm)
+  binBreaks <- IQR(x = forecastErrors,
+                   na.rm = TRUE) / 4
+  bins <- seq(from = binMin,
+              to = binMax,
+              by = binBreaks)
+  hist(x = forecastErrors,
+       col = "#DCE319FF",
+       freq = FALSE,
+       breaks = bins)
+  with(data = hist(x = forecastErrorsNorm,
+                   plot = FALSE,
+                   breaks = bins),
+       expr = lines(x = mids,
+                    y = density,
+                    col = "#440154FF",
+                    lwd = 3))
+}
+# plotando o histograma dos erros de previsão
+plotForecastErrors(rainseriesforecasts2$forecast$xhat$residuals) 
+  
+
+autoplot(Stemp_Base_Dados)
+dec <- decompose(Stemp_Base_Dados)  
+autoplot(dec)  
+######################################################################################################################################################################  
+# Passo a passo, Box e Jenkis (1976)
+# 1: Plotar a série e examinar;
+# 2: Diferenciar a série até ficar estacionária e fazer transformações, se necessário;
+# 3: Usar séries diferenciadas para definir p e q;
+# 4: Implementar o Arima nos dados originais;
+# 5: Checar se é um bom modelo;
+# 6: Usar o modelo para fazer previsões.
+
+# Passo 1 
+autoplot(Stemp_Base_Dados)
+dec <- decompose(Stemp_Base_Dados)  
+autoplot(dec)   
+# Passo 2 
+nsdiffs(Stemp_Base_Dados)  # número para diferenciação sazonal necessário. Retornou o valor 1
+Stemp_Base_Dados_diff <- diff(Stemp_Base_Dados, lag=frequency(Stemp_Base_Dados), differences=1)  # diferenciação sazonal
+plot(Stemp_Base_Dados_diff, main = "Diferença Sazonal")
+Stemp_Base_Dados_diff # Não usarei essa base com difernciação de número 1, irei usar direto no ARIMA
+
+# Passo 3
+pacf(Stemp_Base_Dados_diff)
+acf(Stemp_Base_Dados_diff)
+
+nsdiffs(Stemp_Base_Dados) 
+ndiffs(Stemp_Base_Dados)
+
+
+# Passo 4
+mod.arima <- Arima(Stemp_Base_Dados, order = c(1, 1,1), seasonal = c(1, 1, 1))
+
+# usamos o lambda devido a transformação de BoxCox
+summary(mod.arima)
+autoplot(Stemp_Base_Dados) + autolayer(mod.arima$fitted)
+
+# Passo 6
+prev.arima <- forecast(mod.arima, h = 12)
+autoplot(prev.arima)
+checkresiduals(mod.arima)
+
+
+### Aplicando Auto ARIMA
+auto.arima(Stemp_Base_Dados, trace = TRUE, approximation = FALSE)
+
+
+mod.aa <- Arima(Stemp_Base_Dados, order = c(2, 0, 0), seasonal = c(2, 1, 0), include.drift = FALSE)
+
+checkresiduals(mod.aa)
+
+
+# Passo 4
+prev.aa <- forecast(mod.aa, h = 12)
+autoplot(prev.aa)
+
+autoplot(Stemp_Base_Dados) + autolayer(prev.aa$fitted)
+
+
