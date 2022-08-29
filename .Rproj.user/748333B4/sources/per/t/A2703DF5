@@ -1,27 +1,27 @@
 {
-    "id": "41737B28",
-    "path": "C:/Pessoal/Pós/TCC/Projeto/Series_Rev1.R",
-    "project_path": "Series_Rev1.R",
+    "id": "A2703DF5",
+    "path": "C:/Pessoal/Pós/TCC/Projeto/Series.R",
+    "project_path": "Series.R",
     "type": "r_source",
-    "hash": "0",
+    "hash": "855337191",
     "contents": "",
     "dirty": true,
-    "created": 1651622850877.0,
+    "created": 1661471457124.0,
     "source_on_save": false,
-    "relative_order": 1,
+    "relative_order": 4,
     "properties": {
         "tempName": "Untitled1",
         "source_window_id": "",
         "Source": "Source",
-        "cursorPosition": "136,0",
-        "scrollLine": "98"
+        "cursorPosition": "17,131",
+        "scrollLine": "5"
     },
     "folds": "",
-    "lastKnownWriteTime": 1661211073,
+    "lastKnownWriteTime": 1661480711,
     "encoding": "UTF-8",
     "collab_server": "",
     "source_window": "",
-    "last_content_update": 1661212429671,
+    "last_content_update": 1661480950812,
     "read_only": false,
     "read_only_alternatives": []
 }

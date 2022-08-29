@@ -19,7 +19,7 @@ if(sum(as.numeric(!pacotes %in% installed.packages())) != 0){
 ################################   Passo 1: Tratamento e apresentação de dados    #################################################
 
 # 1.1: Carregando base de dados coletada do Site da NASA com os valores da Irradiação entre os anos de 1984 e 2021
-Base_Dados = read.csv(file = "Base_Irrad_1984_2022.csv")
+Base_Dados = read.csv(file = "C:\\Pessoal\\Pós\\TCC\\Projeto\\Base_Irrad_1984_2022.csv")
 
 
 # 1.2: Gerando uma série temporal da base de dados original contendo o valores da variável Irradiação entre os anos de 1984 e 2021
@@ -53,13 +53,13 @@ tsData <- ts(Stemp_Base_Dados)
 tsData
 
 LaggedTs <- lag(tsData,3) #Verificar
-myDf <- as.data.frame(tsData) #Verificar
+myDf <- as.data.frame(tsData)
 myDf
 myDf <- slide(myDf, "x",NewVar = "xLag1", slideBy = -1 )
-myDf <- slide(myDf, "x",NewVar = "xLead1", slideBy = 1 ) # Verificar
+myDf <- slide(myDf, "x",NewVar = "xLead1", slideBy = 1 )
 head(myDf)
 hist(Stemp_Base_Dados) # verificar se vale pôr no trabalho
-
+hist(Stemp_Base_Dados_diff) # verificar se vale pôr no trabalho
 
 # 2.3 Autocorrelação e Autocorrelação Parcial
 Stemp_Base_Dados_acf = acf(Stemp_Base_Dados, lag.max = 20 )
@@ -71,7 +71,24 @@ nsdiffs(Stemp_Base_Dados)  # número para diferenciação sazonal necessário. R
 Stemp_Base_Dados_diff <- diff(Stemp_Base_Dados, lag=frequency(Stemp_Base_Dados), differences=1)  # diferenciação sazonal
 plot(Stemp_Base_Dados_diff, main = "Diferença Sazonal")
 Stemp_Base_Dados_diff 
-hist(Stemp_Base_Dados_diff) # verificar se vale pôr no trabalho
+# Passo 2 .5 - Usando a função HoltWinters() e definindo os parâmetros beta e gamma.
+
+rainseriesforecasts <- HoltWinters(Stemp_Base_Dados, beta=FALSE, gamma=FALSE)
+rainseriesforecasts
+rainseriesforecasts$fitted
+plot(rainseriesforecasts$fitted)
+rainseriesforecasts$SSE
+HoltWinters(rainseriesforecasts$fitted, beta=FALSE, gamma=FALSE, l.start=5.86 ) # utilizando o primeiro valor previsto
+rainseriesforecasts2  <- forecast(rainseriesforecasts$fitted, h=24) 
+rainseriesforecasts2   
+plot(rainseriesforecasts2) 
+coefficients(rainseriesforecasts2$forecast$xhat$model$residuals )
+checkresiduals(rainseriesforecasts2$forecast$xhat$model$residuals)
+rainseriesforecasts2$forecast$xhat$model$residuals
+plot.ts(rainseriesforecasts2$forecast$xhat$model$residuals)
+View (rainseriesforecasts2)
+acf(rainseriesforecasts2$forecast$xhat$residuals, lag.max = 20, na.action = na.pass)
+Box.test(rainseriesforecasts2$forecast$xhat$residuals, lag=20, type="Ljung-Box")
 
 # Passo 2 .2 Para avaliar vamos gerar um histograma
 
@@ -105,21 +122,21 @@ plotForecastErrors <- function(forecastErrors)
                     col = "#440154FF",
                     lwd = 3))
 }
-
-
+# plotando o histograma dos erros de previsão
+plotForecastErrors(rainseriesforecasts2$forecast$xhat$residuals) 
 
 ################################   Passo 3: Usar séries diferenciadas para definir p e q    #################################################
 pacf(Stemp_Base_Dados_diff)
 acf(Stemp_Base_Dados_diff)
 nsdiffs(Stemp_Base_Dados) 
-#ndiffs(Stemp_Base_Dados)
+ndiffs(Stemp_Base_Dados)
 
-################################   Passo 4: Implementando o Arima nos dados originais - RETIRAR    #################################################
+################################   Passo 4: Implementando o Arima nos dados originais    #################################################
 mod.arima <- Arima(Stemp_Base_Dados, order = c(1, 1,1), seasonal = c(1, 1, 1))
 summary(mod.arima)
 autoplot(Stemp_Base_Dados) + autolayer(mod.arima$fitted)
 
-################################   Passo 5: Verificando o Modelo RETIRAR    #################################################
+################################   Passo 5: Verificando o Modelo    #################################################
 prev.arima <- forecast(mod.arima, h = 12)
 autoplot(prev.arima)
 checkresiduals(mod.arima)
@@ -127,12 +144,10 @@ checkresiduals(mod.arima)
 auto.arima(Stemp_Base_Dados, trace = TRUE, approximation = FALSE)
 mod.aa <- Arima(Stemp_Base_Dados, order = c(2, 0, 0), seasonal = c(2, 1, 0), include.drift = FALSE)
 checkresiduals(mod.aa)
-# plotando o histograma dos erros de previsão
-plotForecastErrors(mod.arima$residuals)
+
 ################################   Passo 6: Previsões do Modelo    #################################################
 prev.aa <- forecast(mod.aa, h = 12)
 autoplot(prev.aa)
 teste <-(prev.aa)
 teste
 autoplot(Stemp_Base_Dados) + autolayer(prev.aa$fitted)
-
